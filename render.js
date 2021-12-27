@@ -47,12 +47,29 @@ function drawFrame(context, name, x, y, w, h, frame, totalFrames) {
     context.drawImage(img, 0, frame * frameHeight, srcWidth, frameHeight, x - w / 2, y - h / 2, w, h);
 }
 
+function drawText(context, text, color, size, x, y) {
+
+    context.fillStyle = color;
+    context.font = size + "pt 'Press Start 2P'"
+    context.fillText(text, x, y + size / 2);
+}
+
+
+function drawCenteredText(context, text, color, size, x, y) {
+
+    context.fillStyle = color;
+    context.font = size + "pt 'Press Start 2P'"
+    let width = context.measureText(text).width;
+    context.fillText(text, x - width / 2, y + size / 2);
+}
+
 // Render background
 function renderBackground(context, width, height, from, to, percent) {
     // Lerp color
     let curr = [Math.round(from[0] + (to[0] - from[0]) * percent),
     Math.round(from[1] + (to[1] - from[1]) * percent),
-    Math.round(from[2] + (to[2] - from[2]) * percent)]
+    Math.round(from[2] + (to[2] - from[2]) * percent),
+    Math.round(from[3] + (to[3] - from[3]) * percent)]
     
     // Convert to hex
     let color = '#';

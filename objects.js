@@ -8,7 +8,7 @@ class Player {
         this.w = 64;
         this.h = 64;
         this.cw = 32;
-        this.ch = 64;
+        this.ch = 63;
         this.frame = 0;
         this.name = name;
         this.type = 'player'
@@ -19,6 +19,7 @@ class Player {
         this.onLadder = false;
         this.ladderDir = 0;
         this.curLadder = null;
+        this.numLadders = 25;
     }
 
     render(context) {
@@ -26,6 +27,7 @@ class Player {
 
         // context.fillStyle = "#FF000022";
         // context.fillRect(this.x - this.cw / 2, this.y - this.ch / 2, this.cw, this.ch);
+        drawCenteredText(context, this.numLadders.toString(), '#FFF', 8, this.x, this.y - 32);
     }
 
     input(dt, world) {
@@ -40,8 +42,9 @@ class Player {
                 this.vx += moveSpeed * dt;
             }
             if (this.keymap.up && isKeyDown(this.keymap.up) &&
-                this.onGround && canPlaceLadder(world, this.x, this.y + 5)) { // ladder up (todo: permissions)
+                this.onGround && canPlaceLadder(world, this.x, this.y + 5) && this.name == 'player2') { // ladder up (todo: permissions)
                 world.push(new Ladder(this.x, this.y + 5, 0));
+                this.numLadders--;
             }
         }
 
@@ -59,6 +62,12 @@ class Player {
                 if (!canPlaceLadder(world, this.curLadder.x, this.curLadder.y - 64)) {
                     return;
                 }
+                if ((this.curLadder.left && this.curLadder.right) && !(this.curLadder.bottom || this.curLadder.top)) {
+                    return;
+                }
+                if (this.name == 'player1') {
+                    return;
+                }
                 newLadder = new Ladder(this.curLadder.x, this.curLadder.y - 64, 0);
                 this.curLadder.top = newLadder;
                 newLadder.bottom = this.curLadder;
@@ -69,6 +78,12 @@ class Player {
                     return;
                 }
                 if (!canPlaceLadder(world, this.curLadder.x, this.curLadder.y + 64)) {
+                    return;
+                }
+                if ((this.curLadder.left && this.curLadder.right) && !(this.curLadder.bottom || this.curLadder.top)) {
+                    return;
+                }
+                if (this.name == 'player1') {
                     return;
                 }
                 newLadder = new Ladder(this.curLadder.x, this.curLadder.y + 64, 0);
@@ -83,7 +98,10 @@ class Player {
                 if (!canPlaceLadder(world, this.curLadder.x + 64, this.curLadder.y)) {
                     return;
                 }
-                if (this.curLadder.top && this.curLadder.bottom) {
+                if ((this.curLadder.top && this.curLadder.bottom) && !(this.curLadder.left || this.curLadder.right)) {
+                    return;
+                }
+                if (this.name == 'player2') {
                     return;
                 }
                 newLadder = new Ladder(this.curLadder.x + 64, this.curLadder.y, 1);
@@ -98,7 +116,10 @@ class Player {
                 if (!canPlaceLadder(world, this.curLadder.x - 64, this.curLadder.y)) {
                     return;
                 }
-                if (this.curLadder.top && this.curLadder.bottom) {
+                if ((this.curLadder.top && this.curLadder.bottom) && !(this.curLadder.left || this.curLadder.right)) {
+                    return;
+                }
+                if (this.name == 'player2') {
                     return;
                 }
                 newLadder = new Ladder(this.curLadder.x - 64, this.curLadder.y, 1);
@@ -109,6 +130,7 @@ class Player {
             if (newLadder) {
                 this.nextLadder = newLadder;
                 world.push(newLadder);
+                this.numLadders--;
             }
         }
     }
@@ -131,10 +153,6 @@ class Player {
             } else {
                 this.vx = distX * 10;
                 this.vy = distY * 10;
-
-                if (this.vy > 0) {
-                    this.vy *= 1.2; // 20% faster
-                }
             }
         }
 
@@ -163,13 +181,20 @@ class Player {
             if (Math.abs(distX) < maxW && Math.abs(distY + dy) < maxH) {
                 dy = 0;
                 this.vy = 0;
+            }
 
+            if (Math.abs(distX) < maxW && Math.abs(distY + 16) < maxH) {
                 if (obj.type == 'island') {
                     this.onGround = true;
                     this.onLadder = false;
                 }
-                if (obj.type == 'player') {
+            }
+
+            if (obj.type == 'player') {
+                if (this.nextLadder && obj.curLadder && this.nextLadder == obj.curLadder) {
                     this.onLadder = false;
+                    this.onGround = false;
+                    obj.onLadder = false;
                 }
             }
 
@@ -177,9 +202,6 @@ class Player {
             if (Math.abs(distX + dx) < maxW && Math.abs(distY) < maxH) {
                 dx = 0;
                 this.vx = 0;
-                if (obj.type == 'player') {
-                    this.onLadder = false;
-                }
             }
         }
 
@@ -190,7 +212,7 @@ class Player {
             this.nextLadder = null;
             let ladders = world.filter(o => o.type == 'ladder')
             for (let ladder of ladders) {
-                if (Math.abs(ladder.x - this.x) < 10 && Math.abs(ladder.y - this.y) < 10) {
+                if (Math.abs(ladder.x - this.x) < 32 && Math.abs(ladder.y - this.y) < 32) {
                     this.onLadder = true;
                     this.curLadder = ladder;
                 }
@@ -271,12 +293,53 @@ class Ladder {
         drawFrame(context, this.name, this.x, this.y, this.w, this.h, this.frame, 3);
     }
 
-    update() {
+    update(dt, world) {
         //stub
         let vert = this.top != null || this.bottom != null;
         let horiz = this.left != null || this.right != null;
         if (vert && horiz) {
             this.frame = 2;
+        }
+    }
+}
+
+class Item {
+    constructor(x, y, frame) {
+        this.x = x;
+        this.y = y;
+        this.w = 32;
+        this.h = 32;
+        this.frame = frame;
+        this.name = 'ladder';
+        this.type = 'item';
+        this.zRender = 3;
+        this.zUpdate = 3;
+    }
+
+    render(context) {
+        drawFrame(context, this.name, this.x, this.y, this.w, this.h, this.frame, 3);
+    }
+
+    update(dt, world) {
+        
+        for (let o of world) {
+            if (o.type == 'player') {
+                let distX = o.x - this.x;
+                let distY = o.y - this.y;
+
+                if (o.name == 'player1' && this.frame == 1) {
+                    return;
+                }
+                if (o.name == 'player2' && this.frame == 0) {
+                    return;
+                }
+
+                if (Math.abs(distX) < 64 && Math.abs(distY < 64)) {
+                    this.x = -10000;
+                    this.y = -10000;
+                    o.numLadders += 25;
+                }
+            }
         }
     }
 }
