@@ -32,14 +32,14 @@ function preinit() {
     Promise.all(promises).then(() => {
         // Initialize game
         console.info('Initializing game');
-        init();        
+        init();
     })
 }
 
 function init() {
     // Setup canvas canvas
     console.info('Setting up canvas');
-    setupCanvas(canvas, { height: TARGET_HEIGHT})
+    setupCanvas(canvas, { height: TARGET_HEIGHT })
     swidth = canvas.width;
     sheight = canvas.height;
     cameraX = -swidth / 2;
@@ -47,8 +47,8 @@ function init() {
 
     // Setup players
     console.info('Setting up players');
-    world.push(new Player(50, 100, 'player1', {right: 'ArrowRight', left: 'ArrowLeft', up: 'ArrowUp', down: 'ArrowDown', buildUp: 'ArrowUp'})); // arrow keys
-    world.push(new Player(-50, 100, 'player2', {right: 'KeyD', left: 'KeyA', up: 'KeyW', down: 'KeyS'})); // wasd
+    world.push(new Player(50, 100, 'player1', { right: 'ArrowRight', left: 'ArrowLeft', up: 'ArrowUp', down: 'ArrowDown'})); // arrow keys
+    world.push(new Player(-50, 100, 'player2', { right: 'KeyD', left: 'KeyA', up: 'KeyW', down: 'KeyS'})); // wasd
 
     // Default island
     world.push(new Island(0, 300, Math.floor(random(0, 3))))
@@ -59,7 +59,7 @@ function init() {
             if (Math.abs(x) < 500 && Math.abs(y) < 500) {
                 continue;
             }
-            
+
             world.push(new Island(x, -y, Math.floor(random(0, 3))))
         }
     }
@@ -142,8 +142,8 @@ function loop() {
     let dt = (now - lastLoop) / 1000;
 
     // Maximum dt
-    if (dt > 1/30) {
-        dt = 1/30;
+    if (dt > 1 / 30) {
+        dt = 1 / 30;
     }
 
     // Events
@@ -163,7 +163,7 @@ preinit();
 window.onresize = () => {
     // Setup canvas
     console.info('Reformating up canvas');
-    setupCanvas(canvas, { height: TARGET_HEIGHT})
+    setupCanvas(canvas, { height: TARGET_HEIGHT })
     swidth = canvas.width;
     sheight = canvas.height;
 }
@@ -186,4 +186,18 @@ function isKeyDown(code) {
 function random(min, max) {
 
     return Math.random() * (max - min) + min;
+}
+
+function canPlaceLadder(world, x, y) {
+    for (let o of world) {
+        let dx = x - o.x;
+        let dy = y - o.y;
+        if (o.type == 'ladder') {
+            if (Math.abs(dx) < 32 && Math.abs(dy) < 32) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }

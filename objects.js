@@ -7,7 +7,7 @@ class Player {
         this.vy = 0;
         this.w = 64;
         this.h = 64;
-        this.cw = 64;
+        this.cw = 32;
         this.ch = 64;
         this.frame = 0;
         this.name = name;
@@ -18,53 +18,97 @@ class Player {
         this.onGround = false;
         this.onLadder = false;
         this.ladderDir = 0;
-        this.prevLadder = null;
+        this.curLadder = null;
     }
 
     render(context) {
         drawFrame(context, this.name, this.x, this.y, this.w, this.h, Math.floor(this.frame), 4);
 
-        context.fillStyle = "#FF000022";
-        context.fillRect(this.x - this.cw / 2, this.y - this.ch / 2, this.cw, this.ch);
+        // context.fillStyle = "#FF000022";
+        // context.fillRect(this.x - this.cw / 2, this.y - this.ch / 2, this.cw, this.ch);
     }
 
     input(dt, world) {
         const moveSpeed = 3000;
 
-        // Handle controls
-        if (this.keymap.left && isKeyDown(this.keymap.left)) {
-            this.vx -= moveSpeed * dt;
-        }
-        if (this.keymap.right && isKeyDown(this.keymap.right)) {
-            this.vx += moveSpeed * dt;
-        }
-        if (this.keymap.up && isKeyDown(this.keymap.up)) {
-            if (this.onLadder && this.ladderDir == 0) {
-                this.vy -= moveSpeed * dt;
+        if (this.onGround || !this.onLadder) {
+            // Handle controls
+            if (this.keymap.left && isKeyDown(this.keymap.left)) { // left
+                this.vx -= moveSpeed * dt;
+            }
+            if (this.keymap.right && isKeyDown(this.keymap.right)) { // right
+                this.vx += moveSpeed * dt;
+            }
+            if (this.keymap.up && isKeyDown(this.keymap.up) &&
+                this.onGround && canPlaceLadder(world, this.x, this.y + 5)) { // ladder up (todo: permissions)
+                world.push(new Ladder(this.x, this.y + 5, 0));
             }
         }
-        if (this.keymap.down && isKeyDown(this.keymap.down)) {
-            if (this.onLadder && this.ladderDir == 0) {
-                this.vy += moveSpeed * dt;
-            }
-        }
-        if (this.keymap.buildUp && isKeyDown(this.keymap.buildUp)) {
-            if (this.onGround && !this.onLadder) {
-                // create a ladder
-                let ladder = new Ladder(this.x, this.y, 0);
-                world.push(ladder);
+
+        if (this.onLadder) {
+            let newLadder;
+            if (this.curLadder && this.nextLadder && this.curLadder != this.nextLadder) {
+                return;
             }
 
-            if (!this.onLadder && this.prevLadder) {
-                // Check distance
-                let distX = this.prevLadder.x - this.x;
-                if (Math.abs(distX) >= this.w / 2) {
+            if (this.keymap.up && isKeyDown(this.keymap.up)) {
+                if (this.curLadder.top) {
+                    this.nextLadder = this.curLadder.top;
                     return;
                 }
+                if (!canPlaceLadder(world, this.curLadder.x, this.curLadder.y - 64)) {
+                    return;
+                }
+                newLadder = new Ladder(this.curLadder.x, this.curLadder.y - 64, 0);
+                this.curLadder.top = newLadder;
+                newLadder.bottom = this.curLadder;
+            }
+            if (this.keymap.down && isKeyDown(this.keymap.down) && !this.onGround) {
+                if (this.curLadder.bottom) {
+                    this.nextLadder = this.curLadder.bottom;
+                    return;
+                }
+                if (!canPlaceLadder(world, this.curLadder.x, this.curLadder.y + 64)) {
+                    return;
+                }
+                newLadder = new Ladder(this.curLadder.x, this.curLadder.y + 64, 0);
+                this.curLadder.bottom = newLadder;
+                newLadder.top = this.curLadder;
+            }
+            if (this.keymap.right && isKeyDown(this.keymap.right) && !this.onGround) {
+                if (this.curLadder.right) {
+                    this.nextLadder = this.curLadder.right;
+                    return;
+                }
+                if (!canPlaceLadder(world, this.curLadder.x + 64, this.curLadder.y)) {
+                    return;
+                }
+                if (this.curLadder.top && this.curLadder.bottom) {
+                    return;
+                }
+                newLadder = new Ladder(this.curLadder.x + 64, this.curLadder.y, 1);
+                this.curLadder.right = newLadder;
+                newLadder.left = this.curLadder;
+            }
+            if (this.keymap.left && isKeyDown(this.keymap.left) && !this.onGround) {
+                if (this.curLadder.left) {
+                    this.nextLadder = this.curLadder.left;
+                    return;
+                }
+                if (!canPlaceLadder(world, this.curLadder.x - 64, this.curLadder.y)) {
+                    return;
+                }
+                if (this.curLadder.top && this.curLadder.bottom) {
+                    return;
+                }
+                newLadder = new Ladder(this.curLadder.x - 64, this.curLadder.y, 1);
+                this.curLadder.left = newLadder;
+                newLadder.right = this.curLadder;
+            }
 
-                // create a ladder
-                let ladder = new Ladder(this.prevLadder.x, this.prevLadder.y - 64, 0);
-                world.push(ladder);
+            if (newLadder) {
+                this.nextLadder = newLadder;
+                world.push(newLadder);
             }
         }
     }
@@ -72,12 +116,29 @@ class Player {
     update(dt, world) {
 
         // Gravity
-        if (!this.onLadder) {
+        if (!this.onLadder || this.onGround) {
             this.vy += 980 * dt;
         } else {
             this.vy = this.vy * 0.8;
         }
-        
+
+        // Movement
+        if (this.onLadder && this.curLadder && this.nextLadder && this.curLadder != this.nextLadder) {
+            let distX = this.nextLadder.x - this.x;
+            let distY = this.nextLadder.y - this.y;
+            if (Math.abs(distX) <= 5 && Math.abs(distY) <= 5) {
+                this.curLadder = this.nextLadder;
+            } else {
+                this.vx = distX * 10;
+                this.vy = distY * 10;
+
+                if (this.vy > 0) {
+                    this.vy *= 1.2; // 20% faster
+                }
+            }
+        }
+
+        // Friction
         this.vx = this.vx * 0.8;
 
         let dx = this.vx * dt;
@@ -105,7 +166,10 @@ class Player {
 
                 if (obj.type == 'island') {
                     this.onGround = true;
-                    this.prevLadder = null;
+                    this.onLadder = false;
+                }
+                if (obj.type == 'player') {
+                    this.onLadder = false;
                 }
             }
 
@@ -113,19 +177,23 @@ class Player {
             if (Math.abs(distX + dx) < maxW && Math.abs(distY) < maxH) {
                 dx = 0;
                 this.vx = 0;
+                if (obj.type == 'player') {
+                    this.onLadder = false;
+                }
             }
         }
 
-        // Ladders
-        this.onLadder = false;
-        let ladders = world.filter(o => o.type == 'ladder');
-        for (let ladder of ladders) {
-            let distX = this.x - ladder.x;
-            let distY = this.y - ladder.y;
-            if (Math.abs(distX) <= this.w/2 && Math.abs(distY) <= this.h) {
-                this.onLadder = true;
-                this.prevLadder = ladder;
-                this.ladderDir = ladder.frame;
+        // Is on ground?
+        if (this.onGround) {
+            this.onLadder = false;
+            this.curLadder = null;
+            this.nextLadder = null;
+            let ladders = world.filter(o => o.type == 'ladder')
+            for (let ladder of ladders) {
+                if (Math.abs(ladder.x - this.x) < 10 && Math.abs(ladder.y - this.y) < 10) {
+                    this.onLadder = true;
+                    this.curLadder = ladder;
+                }
             }
         }
 
@@ -138,7 +206,6 @@ class Player {
         } else {
             this.frame = 0;
         }
-
 
         // Actual movement
         this.x += dx;
@@ -173,8 +240,8 @@ class Island {
     render(context) {
         drawFrame(context, this.name, this.x, this.y, this.w, this.h, this.frame, 3);
 
-        context.fillStyle = "#FFFFFF22";
-        context.fillRect(this.x - this.cw / 2, this.y - this.ch / 2, this.cw, this.ch);
+        // context.fillStyle = "#FFFFFF22";
+        // context.fillRect(this.x - this.cw / 2, this.y - this.ch / 2, this.cw, this.ch);
     }
 
     update() {
@@ -194,16 +261,22 @@ class Ladder {
         this.type = 'ladder';
         this.zRender = 2;
         this.zUpdate = 2;
+        this.left = null;
+        this.right = null;
+        this.top = null;
+        this.bottom = null;
     }
 
     render(context) {
         drawFrame(context, this.name, this.x, this.y, this.w, this.h, this.frame, 3);
-
-        context.fillStyle = "#FFFFFF22";
-        context.fillRect(this.x - this.cw / 2, this.y - this.ch / 2, this.cw, this.ch);
     }
 
     update() {
         //stub
+        let vert = this.top != null || this.bottom != null;
+        let horiz = this.left != null || this.right != null;
+        if (vert && horiz) {
+            this.frame = 2;
+        }
     }
 }
