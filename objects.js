@@ -68,6 +68,9 @@ class Player {
                 if (this.name == 'player1') {
                     return;
                 }
+                if (this.numLadders <= 0) {
+                    return;
+                }
                 newLadder = new Ladder(this.curLadder.x, this.curLadder.y - 64, 0);
                 this.curLadder.top = newLadder;
                 newLadder.bottom = this.curLadder;
@@ -84,6 +87,9 @@ class Player {
                     return;
                 }
                 if (this.name == 'player1') {
+                    return;
+                }
+                if (this.numLadders <= 0) {
                     return;
                 }
                 newLadder = new Ladder(this.curLadder.x, this.curLadder.y + 64, 0);
@@ -104,6 +110,9 @@ class Player {
                 if (this.name == 'player2') {
                     return;
                 }
+                if (this.numLadders <= 0) {
+                    return;
+                }
                 newLadder = new Ladder(this.curLadder.x + 64, this.curLadder.y, 1);
                 this.curLadder.right = newLadder;
                 newLadder.left = this.curLadder;
@@ -120,6 +129,9 @@ class Player {
                     return;
                 }
                 if (this.name == 'player2') {
+                    return;
+                }
+                if (this.numLadders <= 0) {
                     return;
                 }
                 newLadder = new Ladder(this.curLadder.x - 64, this.curLadder.y, 1);
@@ -338,6 +350,7 @@ class Item {
                     this.x = -10000;
                     this.y = -10000;
                     o.numLadders += 25;
+                    break;
                 }
             }
         }
