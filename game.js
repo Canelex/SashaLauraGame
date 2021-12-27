@@ -42,14 +42,16 @@ function init() {
     setupCanvas(canvas, { height: TARGET_HEIGHT})
     swidth = canvas.width;
     sheight = canvas.height;
+    cameraX = -swidth / 2;
+    cameraY = -sheight / 2
 
     // Setup players
     console.info('Setting up players');
-    world.push(new Player(200, 100, 'player1', {right: 'ArrowRight', left: 'ArrowLeft', up: 'ArrowUp', down: 'ArrowDown'})); // arrow keys
-    world.push(new Player(100, 100, 'player2', {right: 'KeyD', left: 'KeyA', up: 'KeyW', down: 'KeyS'})); // wasd
+    world.push(new Player(50, 100, 'player1', {right: 'ArrowRight', left: 'ArrowLeft', up: 'ArrowUp', down: 'ArrowDown', buildUp: 'ArrowUp'})); // arrow keys
+    world.push(new Player(-50, 100, 'player2', {right: 'KeyD', left: 'KeyA', up: 'KeyW', down: 'KeyS'})); // wasd
 
     // Default island
-    world.push(new Island(150, 300, Math.floor(random(0, 3))))
+    world.push(new Island(0, 300, Math.floor(random(0, 3))))
 
     // Generate islands
     for (let y = 0; y < 1000; y += random(200, 300)) {
@@ -58,7 +60,7 @@ function init() {
                 continue;
             }
             
-            world.push(new Island(x, y, Math.floor(random(0, 3))))
+            world.push(new Island(x, -y, Math.floor(random(0, 3))))
         }
     }
 
@@ -85,10 +87,28 @@ function update(dt) {
         return b.zUpdate - a.zUpdate;
     })
 
+    // Update camera
+    let cameraTargetX = 0;
+    let cameraTargetY = 0;
+    let numPlayers = 0;
+
     // Update objects
     for (let o of world) {
         o.update(dt, world);
+
+        if (o.type == 'player') {
+            cameraTargetX += o.x;
+            cameraTargetY += o.y;
+            numPlayers++;
+        }
     }
+
+    cameraTargetX /= numPlayers;
+    cameraTargetY /= numPlayers;
+    cameraTargetX -= swidth / 2;
+    cameraTargetY -= sheight / 2
+    cameraX = (cameraTargetX - cameraX) * 0.1 + cameraX;
+    cameraY = (cameraTargetY - cameraY) * 0.1 + cameraY;
 }
 
 function render(dt) {
@@ -96,8 +116,11 @@ function render(dt) {
     context.clearRect(0, 0, swidth, sheight);
 
     // Render background
-    let percent = Math.min(1, Math.max(cameraY, 0) / 1000);
+    let percent = Math.min(1, Math.max(-cameraY, 0) / 1000);
     renderBackground(context, swidth, sheight, [50, 150, 200], [5, 15, 100], percent);
+
+    // Move by camera
+    context.translate(-cameraX, -cameraY);
 
     // Order by zRender
     world.sort((a, b) => {
@@ -108,12 +131,20 @@ function render(dt) {
     for (let o of world) {
         o.render(context);
     }
+
+    // Move back
+    context.translate(cameraX, cameraY);
 }
 
 function loop() {
     // Calculate dt
     let now = new Date().getTime();
     let dt = (now - lastLoop) / 1000;
+
+    // Maximum dt
+    if (dt > 1/30) {
+        dt = 1/30;
+    }
 
     // Events
     input(dt);
