@@ -8,7 +8,7 @@ class Player {
         this.w = 64;
         this.h = 64;
         this.cw = 32;
-        this.ch = 63;
+        this.ch = 48;
         this.frame = 0;
         this.name = name;
         this.type = 'player'
@@ -27,7 +27,16 @@ class Player {
 
         // context.fillStyle = "#FF000022";
         // context.fillRect(this.x - this.cw / 2, this.y - this.ch / 2, this.cw, this.ch);
-        drawCenteredText(context, this.numLadders.toString(), '#FFF', 8, this.x, this.y - 32);
+        drawCenteredText(context, this.numLadders.toString(), '#FFF', 8, this.x - 10, this.y - 32);
+
+        if (this.name == 'player1') {
+            drawFrame(context, 'ladder', this.x + 12, this.y - 35, 20, 20, 1, 3);
+        }
+        
+        if (this.name == 'player2') {
+            drawFrame(context, 'ladder', this.x + 10, this.y - 32, 20, 20, 0, 3);
+        }
+        
     }
 
     input(dt, world) {
@@ -189,17 +198,18 @@ class Player {
             let maxW = (this.cw + obj.cw) / 2;
             let maxH = (this.ch + obj.ch) / 2;
 
-            // Colliding! Stop
-            if (Math.abs(distX) < maxW && Math.abs(distY + dy) < maxH) {
-                dy = 0;
-                this.vy = 0;
-            }
-
             if (Math.abs(distX) < maxW && Math.abs(distY + 16) < maxH) {
                 if (obj.type == 'island') {
                     this.onGround = true;
                     this.onLadder = false;
                 }
+            }
+
+            // Colliding! Stop
+            if (Math.abs(distX) < maxW && Math.abs(distY + dy) < maxH) {
+                dy = 0;
+                this.vy = 0;
+                this.onLadder = false;
             }
 
             if (obj.type == 'player') {
@@ -214,6 +224,7 @@ class Player {
             if (Math.abs(distX + dx) < maxW && Math.abs(distY) < maxH) {
                 dx = 0;
                 this.vx = 0;
+                this.onLadder = false;
             }
         }
 
@@ -339,14 +350,14 @@ class Item {
                 let distX = o.x - this.x;
                 let distY = o.y - this.y;
 
-                if (o.name == 'player1' && this.frame == 1) {
-                    return;
+                if (o.name == 'player1' && this.frame == 0) {
+                    continue;
                 }
-                if (o.name == 'player2' && this.frame == 0) {
-                    return;
+                if (o.name == 'player2' && this.frame == 1) {
+                    continue;
                 }
 
-                if (Math.abs(distX) < 64 && Math.abs(distY < 64)) {
+                if (Math.abs(distX) < 32 && Math.abs(distY) < 32) {
                     this.x = -10000;
                     this.y = -10000;
                     o.numLadders += 25;

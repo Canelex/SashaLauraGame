@@ -47,6 +47,7 @@ function init() {
     // Clear the world
     world = [];
     gameOver = false;
+    score = 0;
 
     // Setup canvas canvas
     console.info('Setting up canvas');
@@ -178,10 +179,10 @@ function render(dt) {
     for (let i in colors) {
         let angle = Math.sin(waterLevelAngle) / ratios[i];
         context.rotate(angle);
-        context.translate(-2500, -waterLevel);
+        context.translate(-5000, -waterLevel);
         context.fillStyle = colors[i];
-        context.fillRect(xoff[i], yoff[i], 5000, 5000)
-        context.translate(2500, waterLevel);
+        context.fillRect(xoff[i], yoff[i], 10000, 10000)
+        context.translate(5000, waterLevel);
         context.rotate(-angle);
     }
 
